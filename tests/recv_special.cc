@@ -30,7 +30,6 @@ int main() {
             test.execute(ExpectState{TCPReceiverStateSummary::SYN_RECV});
             test.execute(ExpectAckno{WrappingInt32{isn + 1}});
         }
-
         /* segment with SYN + data */
         {
             uint32_t isn = uniform_int_distribution<uint32_t>{0, UINT32_MAX}(rd);

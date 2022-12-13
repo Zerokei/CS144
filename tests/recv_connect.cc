@@ -26,7 +26,7 @@ int main() {
             test.execute(ExpectUnassembledBytes{0});
             test.execute(ExpectTotalAssembledBytes{0});
         }
-
+        cout << "PASS1" << endl;
         {
             TCPReceiverTestHarness test{5435};
             test.execute(ExpectAckno{std::optional<WrappingInt32>{}});
@@ -38,6 +38,7 @@ int main() {
             test.execute(ExpectTotalAssembledBytes{0});
         }
 
+        cout << "PASS2" << endl;
         {
             TCPReceiverTestHarness test{5435};
             test.execute(ExpectAckno{std::optional<WrappingInt32>{}});
@@ -49,6 +50,7 @@ int main() {
             test.execute(ExpectTotalAssembledBytes{0});
         }
 
+        cout << "PASS3" << endl;
         {
             TCPReceiverTestHarness test{5435};
             test.execute(ExpectAckno{std::optional<WrappingInt32>{}});
@@ -61,6 +63,7 @@ int main() {
             test.execute(ExpectTotalAssembledBytes{0});
         }
 
+        cout << "PASS4" << endl;
         {
             TCPReceiverTestHarness test{5435};
             test.execute(ExpectAckno{std::optional<WrappingInt32>{}});
@@ -77,13 +80,19 @@ int main() {
             test.execute(ExpectTotalAssembledBytes{0});
         }
 
+        cout << "PASS5" << endl;
         {
             TCPReceiverTestHarness test{4000};
             test.execute(SegmentArrives{}.with_syn().with_seqno(5).with_fin().with_result(SegmentArrives::Result::OK));
+            cout << "P" << endl;
             test.execute(ExpectState{TCPReceiverStateSummary::FIN_RECV});
+            cout << "P" << endl;
             test.execute(ExpectAckno{WrappingInt32{7}});
+            cout << "P" << endl;
             test.execute(ExpectUnassembledBytes{0});
+            cout << "P" << endl;
             test.execute(ExpectTotalAssembledBytes{0});
+            cout << "P" << endl;
         }
 
         {

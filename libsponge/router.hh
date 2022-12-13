@@ -33,8 +33,8 @@ class AsyncNetworkInterface : public NetworkInterface {
             _datagrams_out.push(std::move(optional_dgram.value()));
         }
     };
-
     //! Access queue of Internet datagrams that have been received
+
     std::queue<InternetDatagram> &datagrams_out() { return _datagrams_out; }
 };
 
@@ -48,7 +48,15 @@ class Router {
     //! as specified by the route with the longest prefix_length that matches the
     //! datagram's destination address.
     void route_one_datagram(InternetDatagram &dgram);
-
+    struct RouteRecord {
+        uint32_t route_prefix;
+        uint8_t prefix_length;
+        std::optional<Address> next_hop;
+        size_t interface_num;
+        RouteRecord(uint32_t r, uint8_t p, std::optional<Address> n, size_t i) :
+            route_prefix(r), prefix_length(p), next_hop(n), interface_num(i) {}
+    };
+    std::vector<RouteRecord> route_list {};
   public:
     //! Add an interface to the router
     //! \param[in] interface an already-constructed network interface

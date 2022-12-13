@@ -132,6 +132,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         else
             break;
     }
+    //printf("_next_assembled_idx = %lu, new_idx = %lu, index = %lu\n", _next_assembled_idx, new_idx, index);
     // 检测是否存在数据超出了容量。注意这里的容量并不是指可保存的字节数量，而是指可保存的窗口大小
     //! NOTE: 注意这里我们仍然接收了 index 小于 first_unacceptable_idx  但
     //        index + data.size >= first_unacceptable_idx 的那部分数据
@@ -186,6 +187,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         else
             break;
     }
+    //printf("_eof_idx = %lu, _next_assembled_idx = %lu, index = %lu\n", _eof_idx, _next_assembled_idx, index);
     if (eof)
         _eof_idx = index + data.size();
     if (_eof_idx <= _next_assembled_idx)

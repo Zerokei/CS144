@@ -29,14 +29,27 @@ void Router::add_route(const uint32_t route_prefix,
     cerr << "DEBUG: adding route " << Address::from_ipv4_numeric(route_prefix).ip() << "/" << int(prefix_length)
          << " => " << (next_hop.has_value() ? next_hop->ip() : "(direct)") << " on interface " << interface_num << "\n";
 
-    DUMMY_CODE(route_prefix, prefix_length, next_hop, interface_num);
-    // Your code here.
+    route_list.push_back(RouteRecord(route_prefix, prefix_length, next_hop, interface_num));
 }
 
 //! \param[in] dgram The datagram to be routed
 void Router::route_one_datagram(InternetDatagram &dgram) {
-    DUMMY_CODE(dgram);
-    // Your code here.
+    RouteRecord* rec = nullptr;
+    for (auto &router : route_list) {
+        uint8_t prefix_length = router.prefix_length;
+        uint32_t route_prefix = router.route_prefix;
+        uint32_t ip_addr = dgram.header().dst;
+        if (prefix_length == 0 || (ip_addr>>(32-prefix_length)) == (route_prefix>>(32-prefix_length))) {
+            if (rec == nullptr) rec = &router;
+            else if (rec->prefix_length < prefix_length) rec = &router;
+        }
+    }
+    if (rec != nullptr){
+        if (dgram.header().ttl <= 1) return; // dgram time out
+        dgram.header().ttl--;
+        printf("ttl: %hhu\n", dgram.header().ttl);
+        _interfaces[rec->interface_num].send_datagram(dgram, rec->next_hop.has_value() ? *(rec->next_hop) : Address::from_ipv4_numeric(dgram.header().dst));
+    }
 }
 
 void Router::route() {

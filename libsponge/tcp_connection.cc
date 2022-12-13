@@ -21,11 +21,25 @@ size_t TCPConnection::unassembled_bytes() const { return {}; }
 size_t TCPConnection::time_since_last_segment_received() const { return {}; }
 
 void TCPConnection::segment_received(const TCPSegment &seg) { 
-    
+     
     bool need_send_ack = seg.length_in_sequence_space();
-    // you code here.
-    //你需要考虑到ACK包、RST包等多种情况
-    
+    if (seg.header().rst) { // RST packge
+        _sender.stream_in().set_error();
+        _receiver.stream_out().set_error();
+        return;
+    }
+    _receiver.segment_received(seg); 
+    if (seg.header().ack) { // ACK packge
+        _sender.ack_received(seg.header().ackno, seg.header().win);
+    }
+
+    //! TODO:
+    if (_receiver.ackno().has_value() && 
+    seg.length_in_sequence_space() == 0 && 
+    seg.header().seqno == _receiver.ackno().value() - 1) {
+        _sender.send_empty_segment(); // reply the empty segment    
+    }
+
     //状态变化(按照个人的情况可进行修改)
     // 如果是 LISEN 到了 SYN
     if (TCPState::state_summary(_receiver) == TCPReceiverStateSummary::SYN_RECV &&
@@ -62,7 +76,13 @@ size_t TCPConnection::write(const string &data) {
 }
 
 //! \param[in] ms_since_last_tick number of milliseconds since the last call to this method
-void TCPConnection::tick(const size_t ms_since_last_tick) { DUMMY_CODE(ms_since_last_tick); }
+void TCPConnection::tick(const size_t ms_since_last_tick) { 
+    DUMMY_CODE(ms_since_last_tick); 
+    _sender.tick(ms_since_last_tick);
+    if (_sender.consecutive_retransmissions() > TCPConfig::MAX_RETX_ATTEMPTS) {
+        //! TODO:
+    }
+}
 
 void TCPConnection::end_input_stream() {}
 
