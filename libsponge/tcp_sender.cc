@@ -2,6 +2,7 @@
 
 #include "tcp_config.hh"
 
+#include <cstddef>
 #include <random>
 
 // Dummy implementation of a TCP sender
@@ -34,6 +35,11 @@ uint64_t TCPSender::bytes_in_flight() const {
     }
     return total_size;
 }
+size_t TCPSender::write_data(const string &data) {
+    size_t write_data_size = stream_in().write(data);
+    fill_window(); // Wrap the new coming data
+    return write_data_size;
+}
 
 void TCPSender::fill_window() {
     uint16_t window_size = _window_size > 0 ? _window_size : 1;
@@ -47,14 +53,14 @@ void TCPSender::fill_window() {
         }
         // 若未发送SYN数据包，则设置header的SYN位
         TCPSegment tcp_segment;
-        if (next_seqno_absolute() == 0) {
+        if (next_seqno_absolute() == 0) { // CLOSED
             tcp_segment.header().syn = true;
         } 
         // 设置 seqno 和 payload
         tcp_segment.header().seqno = wrap(_next_seqno, _isn); // SET _next_seqno
         tcp_segment.payload() = Buffer(_stream.read(send_size));
 
-        // 若满足条件则设置 FIN
+        // 数据发送完毕且能发送FIN，且还未发送过FIN
         if (!_has_sent_fin && stream_in().eof() && send_size + 1 <= window_size - bytes_in_flight()) {
             tcp_segment.header().fin = true;
             _has_sent_fin = true;
@@ -126,12 +132,15 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
     // 如果未接收队列非空
     else {
         // 重新发送数据段
-        _segments_out.push(resend_segment.value());
         // 如果窗口大小非空
         if (_window_size > 0) {
             _consecutive_retransmissions++;
             _RTO = _RTO * 2;
         }
+        if (_consecutive_retransmissions > TCPConfig::MAX_RETX_ATTEMPTS) {
+            return;
+        }
+        _segments_out.push(resend_segment.value());
         // 重新设置计时器
         _retransmission_timer = _RTO;
     } 
@@ -142,10 +151,14 @@ unsigned int TCPSender::consecutive_retransmissions() const {
 }
 
 void TCPSender::send_empty_segment() {
-    TCPHeader tcp_head;
-    //! HACK: ackno 怎么设置？
-    tcp_head.ackno = wrap(_next_seqno, _isn);
     TCPSegment tcp_segment;
-    tcp_segment.header() = tcp_head;
+    tcp_segment.header().seqno = wrap(_next_seqno, _isn);
+    _segments_out.push(tcp_segment);
+}
+
+void TCPSender::send_RST_segment() {
+    TCPSegment tcp_segment;
+    tcp_segment.header().seqno = wrap(_next_seqno, _isn);
+    tcp_segment.header().rst = true;
     _segments_out.push(tcp_segment);
 }

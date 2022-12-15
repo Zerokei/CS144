@@ -62,6 +62,10 @@ class TCPSender {
 
     //! \brief Generate an empty-payload segment (useful for creating empty ACK segments)
     void send_empty_segment();
+    //! \brief Generate an empty-payload segment with RST
+    void send_RST_segment();
+    //! \brief Receive data from other layer
+    size_t write_data(const std::string &data);
 
     //! \brief create and send segments to fill as much of the window as possible
     void fill_window();

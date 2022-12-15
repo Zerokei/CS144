@@ -21,6 +21,7 @@ class TCPConnection {
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
     bool _is_active{true};
+    size_t _ms_since_last_segment_received{0};
 
   public:
     //! \name "Input" interface for the writer
@@ -79,6 +80,20 @@ class TCPConnection {
     //! \returns `true` if either stream is still running or if the TCPConnection is lingering
     //! after both streams have finished (e.g. to ACK retransmissions from the peer)
     bool active() const;
+    //!@}
+
+    //! \name Methods added by myself
+    //!@{
+    void send_segments();
+    void send_empty_segment();
+    void send_rst_segment();
+    void reset();
+    void wait_enough_time();
+    void shutdown_connection();
+    bool is_state(TCPState stat) {
+      TCPState my_state = TCPState(_sender, _receiver, _is_active, _linger_after_streams_finish);
+      return stat == my_state;
+    }
     //!@}
 
     //! Construct a new connection from a configuration
