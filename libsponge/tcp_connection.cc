@@ -52,13 +52,11 @@ void TCPConnection::wait_enough_time() {
 }
 
 void TCPConnection::segment_received(const TCPSegment &seg) { 
-    // printf("======\n");
     bool prev_closing = is_state(TCPState::State::CLOSING);
     bool prev_fin_wait_1 = is_state(TCPState::State::FIN_WAIT_1);
     bool prev_last_ack = is_state(TCPState::State::LAST_ACK);
 
     _ms_since_last_segment_received = 0; 
-    // bool need_send_ack = seg.length_in_sequence_space();
     if (seg.header().rst) { // RST packge
         reset();
         return;
@@ -102,15 +100,11 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         }
     }
     else send_segments();
-    // printf("send_seq: %lu\n", _sender.next_seqno_absolute());
 
-    // LAST_ACK -> CLOSED
-    
 }
 
 
 void TCPConnection::send_segments() {
-    // printf("size = %lu\n", _sender.segments_out().size());
     while(not _sender.segments_out().empty()) {
         // POP from _sender
         TCPSegment tcp_segment = _sender.segments_out().front();
@@ -120,10 +114,8 @@ void TCPConnection::send_segments() {
         if (_receiver.ackno().has_value() && not tcp_segment.header().rst) {
             tcp_segment.header().ack = true;
             tcp_segment.header().ackno = _receiver.ackno().value();
-            // printf("send ackno = %u\n", _receiver.ackno().value().raw_value());
         }
         tcp_segment.header().win = static_cast<uint16_t>(min(static_cast<size_t>(numeric_limits<uint16_t>::max()) ,_receiver.window_size()));
-        // printf("A = %d, F = %d, R = %d, ackno = %u seqno = %u\n", tcp_segment.header().ack, tcp_segment.header().fin, tcp_segment.header().rst, tcp_segment.header().ackno.raw_value(), tcp_segment.header().seqno.raw_value());
         // PUSH to the output queue 
         _segments_out.push(tcp_segment);
     }
@@ -135,7 +127,6 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     _ms_since_last_segment_received += ms_since_last_tick;
     _sender.tick(ms_since_last_tick);
     send_segments();
-    // printf("%lx, %lx\n", time_since_last_segment_received(), 10*static_cast<uint64_t>(_cfg.rt_timeout));
     if (time_since_last_segment_received() >= 10 * static_cast<uint64_t>(_cfg.rt_timeout)) {
         wait_enough_time();
     }
